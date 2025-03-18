@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Office Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<style>
+    body {
+        font-family: 'Inter', sans-serif;
+    }
+    .custom-map {
+        height: 300px;
+        background: #e5e7eb;
+        border-radius: 8px;
+    }
+</style>
+<body class="bg-gray-50">
+    <div class="min-h-screen">
+        <!-- Login Section -->
+        <div id="loginSection" class="container mx-auto px-4 py-8">
+            <div class="max-w-md mx-auto bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-2xl font-bold text-center mb-6">Office Management System</h2>
+                <form id="loginForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Employee ID</label>
+                        <input type="text" id="employeeId" class="mt-1 block w-full rounded-md border border-gray-300 p-2" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Password</label>
+                        <input type="password" id="password" class="mt-1 block w-full rounded-md border border-gray-300 p-2" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Login As</label>
+                        <select id="userType" class="mt-1 block w-full rounded-md border border-gray-300 p-2">
+                            <option value="employee">Employee</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700">Login</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Employee Dashboard -->
+        <div id="employeeDashboard" class="container mx-auto px-4 py-8 hidden">
+            <div class="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold">Employee Dashboard</h2>
+                    <button onclick="logout()" class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700">Logout</button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="text-lg font-semibold mb-4">Current Location</h3>
+                        <div id="locationMap" class="custom-map mb-4"></div>
+                        <p id="currentLocation" class="text-gray-600"></p>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold mb-4">Attendance Actions</h3>
+                        <div class="space-y-4">
+                            <button id="checkInBtn" onclick="checkIn()" class="w-full bg-green-600 text-white p-2 rounded-md hover:bg-green-700">Check In</button>
+                            <button id="checkOutBtn" onclick="checkOut()" class="w-full bg-yellow-600 text-white p-2 rounded-md hover:bg-yellow-700">Check Out</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Dashboard -->
+        <div id="adminDashboard" class="container mx-auto px-4 py-8 hidden">
+            <div class="max-w-6xl mx-auto bg-white rounded-lg shadow-lg p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold">Admin Dashboard</h2>
+                    <button onclick="logout()" class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700">Logout</button>
+                </div>
+                <div class="space-y-6">
+                    <div>
+                        <h3 class="text-lg font-semibold mb-4">Employee Attendance Overview</h3>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employee ID</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Check In</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Check Out</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hours Worked</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Salary</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="attendanceTableBody" class="bg-white divide-y divide-gray-200">
+                                    <!-- Attendance data will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Mock data for demonstration
+        let employees = {
+            'EMP001': { password: 'pass123', role: 'employee', hourlyRate: 15 },
+            'ADMIN': { password: 'admin123', role: 'admin' }
+        };
+
+        let attendance = [];
+
+        // Login form handling
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const employeeId = document.getElementById('employeeId').value;
+            const password = document.getElementById('password').value;
+            const userType = document.getElementById('userType').value;
+
+            if (employees[employeeId] && employees[employeeId].password === password) {
+                document.getElementById('loginSection').classList.add('hidden');
+                if (userType === 'admin' && employeeId === 'ADMIN') {
+                    document.getElementById('adminDashboard').classList.remove('hidden');
+                    updateAttendanceTable();
+                } else if (userType === 'employee' && employeeId !== 'ADMIN') {
+                    document.getElementById('employeeDashboard').classList.remove('hidden');
+                    getCurrentLocation();
+                } else {
+                    alert('Invalid user type selection!');
+                    return;
+                }
+            } else {
+                alert('Invalid credentials!');
+            }
+        });
+
+        // Get current location
+        function getCurrentLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        const location = `Latitude: ${position.coords.latitude}, Longitude: ${position.coords.longitude}`;
+                        document.getElementById('currentLocation').textContent = location;
+                    },
+                    error => {
+                        console.error("Error getting location:", error);
+                        document.getElementById('currentLocation').textContent = "Location access denied";
+                    }
+                );
+            } else {
+                document.getElementById('currentLocation').textContent = "Geolocation is not supported";
+            }
+        }
+
+        // Check in function
+        function checkIn() {
+            const employeeId = document.getElementById('employeeId').value;
+            getCurrentLocation();
+            const checkInTime = new Date();
+            attendance.push({
+                employeeId: employeeId,
+                checkIn: checkInTime,
+                checkOut: null,
+                location: document.getElementById('currentLocation').textContent
+            });
+            document.getElementById('checkInBtn').disabled = true;
+            alert('Checked in successfully!');
+        }
+
+        // Check out function
+        function checkOut() {
+            const employeeId = document.getElementById('employeeId').value;
+            const record = attendance.find(a => a.employeeId === employeeId && !a.checkOut);
+            if (record) {
+                record.checkOut = new Date();
+                getCurrentLocation();
+                record.location += ` | ${document.getElementById('currentLocation').textContent}`;
+                document.getElementById('checkInBtn').disabled = false;
+                alert('Checked out successfully!');
+                updateAttendanceTable();
+            } else {
+                alert('No active check-in found!');
+            }
+        }
+
+        // Update attendance table
+        function updateAttendanceTable() {
+            const tableBody = document.getElementById('attendanceTableBody');
+            tableBody.innerHTML = '';
+            
+            attendance.forEach(record => {
+                const row = document.createElement('tr');
+                const hoursWorked = record.checkOut ? 
+                    ((record.checkOut - record.checkIn) / (1000 * 60 * 60)).toFixed(2) : 
+                    'Active';
+                const salary = record.checkOut ? 
+                    (hoursWorked * employees[record.employeeId].hourlyRate).toFixed(2) : 
+                    'Pending';
+
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap">${record.employeeId}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${record.checkIn.toLocaleString()}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${record.checkOut ? record.checkOut.toLocaleString() : 'Active'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${record.location}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${hoursWorked}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">$${salary}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Logout function
+        function logout() {
+            document.getElementById('employeeDashboard').classList.add('hidden');
+            document.getElementById('adminDashboard').classList.add('hidden');
+            document.getElementById('loginSection').classList.remove('hidden');
+            document.getElementById('loginForm').reset();
+        }
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
